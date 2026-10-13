@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twitch Guide Bot</title>
+<meta name="description" content="Chatbot SQ/EN që shpjegon vetëm Twitch — me foto dhe video.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;800&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e0e10;--panel:#18181b;--panel2:#1f1f23;--line:#2a2a30;
+  --text:#efeff1;--muted:#adadb8;--accent:#9147ff;--accent2:#bf94ff;--ok:#00f593;
+  --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:Manrope,system-ui,sans-serif;display:flex;flex-direction:column;min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#18181b,#0e0e10);position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .dot{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-family:Syne;font-weight:800;color:#fff;font-size:18px}
+.brand h1{font-family:Syne,sans-serif;font-size:18px;font-weight:800;letter-spacing:.2px}
+.brand p{font-size:12px;color:var(--muted)}
+.lang{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px}
+.lang button{border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:999px;cursor:pointer;font-weight:700;font-family:inherit}
+.lang button.on{background:var(--accent);color:#fff}
+main{flex:1;display:grid;grid-template-columns:1fr 340px;gap:0;max-width:1200px;width:100%;margin:0 auto}
+@media(max-width:900px){main{grid-template-columns:1fr}aside{display:none}}
+#chat{display:flex;flex-direction:column;height:calc(100vh - 67px)}
+#log{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+.msg{max-width:88%;padding:12px 16px;border-radius:var(--radius);line-height:1.55;font-size:15px;white-space:pre-wrap}
+.msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.bot.deny{border-color:#5a2a2a;background:#231616}
+.card{align-self:flex-start;max-width:88%;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;width:560px}
+.card .fig{background:#141417;display:block;width:100%;aspect-ratio:16/9}
+.card .fig svg{width:100%;height:100%;display:block}
+.card .fig iframe{width:100%;height:100%;border:0;display:block}
+.card .cap{padding:10px 14px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.card .cap a{color:var(--accent2);text-decoration:none;font-weight:700}
+.chips{display:flex;gap:8px;flex-wrap:wrap;padding:0 20px 10px}
+.chip{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:999px;padding:7px 13px;font-size:13px;cursor:pointer;font-family:inherit;transition:.15s}
+.chip:hover{border-color:var(--accent);color:var(--accent2)}
+form{display:flex;gap:10px;padding:14px 20px;border-top:1px solid var(--line);background:var(--bg)}
+input{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:13px 16px;font-size:15px;font-family:inherit;outline:none}
+input:focus{border-color:var(--accent)}
+form button{background:var(--accent);color:#fff;border:0;border-radius:12px;padding:0 20px;font-weight:700;cursor:pointer;font-family:inherit}
+form button:disabled{opacity:.5}
+aside{border-left:1px solid var(--line);padding:20px;overflow-y:auto;height:calc(100vh - 67px)}
+aside h2{font-family:Syne;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.topic{display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;cursor:pointer;border:1px solid transparent}
+.topic:hover{background:var(--panel);border-color:var(--line)}
+.topic .ic{width:36px;height:36px;border-radius:10px;background:var(--panel2);display:grid;place-items:center;flex:none}
+.topic .ic svg{width:22px;height:22px}
+.topic b{display:block;font-size:14px}
+.topic span{font-size:12px;color:var(--muted)}
+.typing{display:inline-flex;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:b 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,80%,100%{opacity:.3}40%{opacity:1}}
+.vidbtn{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:5px 11px;color:var(--text);text-decoration:none;font-size:12px;font-weight:700}
+.vidbtn:hover{border-color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="dot">T</div>
+    <div><h1>Twitch Guide Bot</h1><p data-i18n="tag">Të gjitha pyetjet për Twitch — vetëm Twitch.</p></div>
+  </div>
+  <div class="lang">
+    <button id="sq" class="on" onclick="setLang('sq')">SQ</button>
+    <button id="en" onclick="setLang('en')">EN</button>
+  </div>
+</header>
+
+<main>
+  <section id="chat">
+    <div id="log"></div>
+    <div class="chips" id="chips"></div>
+    <form id="f" onsubmit="send(event)">
+      <input id="q" autocomplete="off" placeholder="Pyet diçka për Twitch…">
+      <button id="btn" type="submit">➤</button>
+    </form>
+  </section>
+  <aside>
+    <h2 data-i18n="topics">Temat</h2>
+    <div id="topics"></div>
+  </aside>
+</main>
+
+<script>
+/* ========= CONFIG ========= */
+const API_URL = '/api/chat';          // Vercel function (api/chat.js). Pa API_KEY punon me fallback lokal.
+const HOST = location.hostname || 'localhost';
+// Live embed zyrtar i Twitch (kanali "twitch"). Nëse don kanal tjetër, ndrysho këtu.
+const TWITCH_EMBED = 'https://player.twitch.tv/?channel=twitch&parent=' + HOST + '&muted=true';
+const TWITCH_CHAT_EMBED = 'https://www.twitch.tv/embed/twitch/chat?parent=' + HOST + '&darkpopout';
+
+/* ========= UI TEXT ========= */
+const T = {
+  sq:{tag:'Të gjitha pyetjet për Twitch — vetëm Twitch.',topics:'Temat',ph:'Pyet diçka për Twitch…',
+      hi:'Përshëndetje! 👋 Unë jam Twitch Guide Bot. Më pyet çfarëdo për Twitch — çka është, si bëhesh streamer, Affiliate/Partner, Bits, Subs, Emotes, siguria… Për tema të tjera nuk përgjigjem.',
+      deny:'Më fal, unë përgjigjem vetëm për pyetje rreth Twitch. 🎮 Provo p.sh.: "Si bëhem Twitch Affiliate?" ose "Çka janë Bits?"',
+      err:'Pati një problem me lidhjen. Po përgjigjem me njohuritë lokale.',
+      watch:'Shiko video',live:'Live tani në Twitch',open:'Hape në Twitch'},
+  en:{tag:'Everything about Twitch — only Twitch.',topics:'Topics',ph:'Ask anything about Twitch…',
+      hi:'Hi! 👋 I\'m Twitch Guide Bot. Ask me anything about Twitch — what it is, how to start streaming, Affiliate/Partner, Bits, Subs, Emotes, safety… I don\'t answer questions about other topics.',
+      deny:'Sorry, I only answer questions about Twitch. 🎮 Try e.g. "How do I become a Twitch Affiliate?" or "What are Bits?"',
+      err:'Connection problem. Answering from local knowledge.',
+      watch:'Watch video',live:'Live now on Twitch',open:'Open on Twitch'}
+};
+
+/* ========= KNOWLEDGE BASE (fallback + media) ========= */
+// Çdo temë: keywords, përgjigje SQ/EN, ilustrim SVG (origjinal), video (YouTube kërkim ose embed Twitch), link.
+const KB = [
+ {id:'what', kw:['çka është','cka eshte','what is','twitch','platform','platforme','çfarë është','cfare eshte'],
+  sq:'Twitch është platforma më e madhe për live streaming në botë. Streamer-at transmetojnë drejtpërdrejt — kryesisht video-lojëra, por edhe "Just Chatting", muzikë, art, sport dhe IRL. Shikuesit flasin me ta në chat në kohë reale. Twitch u themelua në 2011 (nga Justin.tv) dhe në 2014 u ble nga Amazon.',
+  en:'Twitch is the world\'s largest live-streaming platform. Streamers broadcast in real time — mostly video games, but also "Just Chatting", music, art, sports and IRL. Viewers talk to them live in chat. Twitch launched in 2011 (spun out of Justin.tv) and was bought by Amazon in 2014.',
+  svg:'overview', video:'live', link:'https://www.twitch.tv'},
+ {id:'start', kw:['si fillo','si filloj','si bëhem streamer','si behem streamer','how to stream','start streaming','obs','streamlabs','setup','fillo stream','go live'],
+  sq:'Për të filluar streaming:\n1. Krijo llogari në twitch.tv dhe aktivizo 2FA.\n2. Në Creator Dashboard merr "Stream Key".\n3. Instalo OBS Studio (falas) ose Streamlabs, vendos Stream Key te Settings → Stream.\n4. Shto burimet: Game Capture, Webcam, Mikrofon.\n5. Kliko "Start Streaming". Rekomandim: 1080p 60fps me ~6000 kbps, ose 720p nëse interneti është më i dobët (upload min. 5–8 Mbps).',
+  en:'To start streaming:\n1. Create an account on twitch.tv and enable 2FA.\n2. In Creator Dashboard copy your "Stream Key".\n3. Install OBS Studio (free) or Streamlabs, paste the key under Settings → Stream.\n4. Add sources: Game Capture, Webcam, Microphone.\n5. Click "Start Streaming". Tip: 1080p60 at ~6000 kbps, or 720p on weaker internet (upload min. 5–8 Mbps).',
+  svg:'setup', video:'yt:how to start streaming on twitch OBS', link:'https://dashboard.twitch.tv'},
+ {id:'affiliate', kw:['affiliate','afiliat','partner','partnerit','monetiz','fito para','make money','earn','pare','para'],
+  sq:'Twitch Affiliate (hapi i parë i monetizimit) — kushtet: 50 followers, 500 minuta stream në 30 ditë, 7 ditë të ndryshme stream, mesatarisht 3 shikues. Pastaj mund të marrësh Subs, Bits dhe reklama.\n\nTwitch Partner (niveli i lartë) — zakonisht 75 shikues mesatarë, 12 ditë stream dhe 25 orë në 30 ditë, plus aplikim manual. Partner-at marrin më shumë emotes, transcoding të garantuar dhe një badge të verifikuar.',
+  en:'Twitch Affiliate (first monetization step) — requirements: 50 followers, 500 minutes streamed in 30 days, 7 unique stream days, average of 3 viewers. Then you can earn Subs, Bits and ads.\n\nTwitch Partner (top tier) — typically 75 average viewers, 12 stream days and 25 hours within 30 days, plus a manual application. Partners get more emote slots, guaranteed transcoding and a verified badge.',
+  svg:'ladder', video:'yt:twitch affiliate vs partner explained', link:'https://www.twitch.tv/p/partners/'},
+ {id:'bits', kw:['bits','cheer','cheering','donat','donate','tip','tips'],
+  sq:'Bits janë monedha virtuale e Twitch. Shikuesit i blejnë me para reale dhe i përdorin për "Cheer" në chat (p.sh. "cheer100"). Streamer-i merr afërsisht $0.01 për çdo Bit. Është mënyra më e thjeshtë për t\'i dhënë mbështetje një streamer-i pa abonim.',
+  en:'Bits are Twitch\'s virtual currency. Viewers buy them with real money and use them to "Cheer" in chat (e.g. "cheer100"). The streamer receives roughly $0.01 per Bit. It\'s the simplest way to support a streamer without subscribing.',
+  svg:'bits', video:'yt:what are twitch bits', link:'https://www.twitch.tv/bits'},
+ {id:'subs', kw:['sub','subs','abonim','abonohem','subscribe','subscription','tier','gift sub','prime sub'],
+  sq:'Subscription (Sub) = abonim mujor te një kanal. Tier 1 ≈ $5.99/muaj, Tier 2 ≈ $9.99, Tier 3 ≈ $24.99 (çmimet ndryshojnë sipas shtetit). Ti merr emotes ekskluzive, badge dhe chat pa reklama. Streamer-i merr zakonisht 50% (Partnerët e mëdhenj deri 70%). Gift Subs = i dhuron sub-a shikuesve të tjerë.',
+  en:'A Subscription (Sub) is a monthly membership to one channel. Tier 1 ≈ $5.99/month, Tier 2 ≈ $9.99, Tier 3 ≈ $24.99 (prices vary by country). You get exclusive emotes, a badge and ad-free viewing. The streamer usually keeps 50% (big Partners up to 70%). Gift Subs let you gift subscriptions to other viewers.',
+  svg:'subs', video:'yt:twitch subscriptions explained', link:'https://www.twitch.tv/subscriptions'},
+ {id:'prime', kw:['prime','amazon prime','prime gaming','falas sub','free sub'],
+  sq:'Prime Gaming vjen me Amazon Prime. Lidh llogarinë e Amazon me Twitch dhe çdo muaj merr 1 sub falas për cilindo kanal, plus lojëra falas dhe loot. Sub-i Prime nuk ripërtërihet vetë — duhet ta japësh çdo muaj.',
+  en:'Prime Gaming comes with Amazon Prime. Link your Amazon account to Twitch and every month you get 1 free sub for any channel, plus free games and loot. The Prime sub does not auto-renew — you must claim it every month.',
+  svg:'prime', video:'yt:how to use twitch prime sub', link:'https://gaming.amazon.com'},
+ {id:'chat', kw:['chat','emote','emotes','kappa','pogchamp','mod','moderator','moderim','slow mode','komand','command','!'],
+  sq:'Chat-i është zemra e Twitch. Emotes janë fotot e vogla në chat — globale (si Kappa, PogChamp, LUL) ose të kanalit (vetëm për subs). Moderatorët (shpata jeshile) mbajnë rendin: timeout, ban, slow mode, sub-only mode. Streamer-at përdorin bots si Nightbot ose StreamElements për komanda (!discord, !socials).',
+  en:'Chat is the heart of Twitch. Emotes are the little images in chat — global ones (like Kappa, PogChamp, LUL) or channel emotes (subs only). Moderators (green sword) keep order: timeouts, bans, slow mode, sub-only mode. Streamers use bots like Nightbot or StreamElements for commands (!discord, !socials).',
+  svg:'chat', video:'twitchchat', link:'https://www.twitch.tv/creatorcamp/en/paths/connect-and-engage/'},
+ {id:'raid', kw:['raid','host','hosting','raids','shoutout'],
+  sq:'Raid = kur një streamer e dërgon gjithë audiencën e vet te një kanal tjetër kur mbaron stream-in (komanda /raid emri). Është mënyra kryesore si streamer-at e vegjël rriten — komuniteti mbështet njëri-tjetrin.',
+  en:'A Raid is when a streamer sends their whole audience to another channel at the end of their stream (command /raid name). It\'s the main way small streamers grow — communities supporting each other.',
+  svg:'raid', video:'yt:what is a twitch raid', link:'https://help.twitch.tv/s/article/how-to-use-raids'},
+ {id:'drops', kw:['drops','drop','shpërblim','reward','channel points','pikë','points','pike'],
+  sq:'Twitch Drops: shikon lojëra të caktuara dhe fiton shpërblime brenda lojës falas (skins, items). Channel Points: pikë që mbledh duke shikuar një kanal; i shpenzon për shpërblime që streamer-i i cakton (p.sh. "highlight my message", "zgjidh lojën").',
+  en:'Twitch Drops: watch specific games and earn free in-game rewards (skins, items). Channel Points: points you collect by watching a channel; spend them on rewards the streamer sets up (e.g. "highlight my message", "pick the game").',
+  svg:'drops', video:'yt:twitch drops explained', link:'https://www.twitch.tv/drops/campaigns'},
+ {id:'safety', kw:['sigur','safety','ban','rregull','rules','tos','guidelines','dmca','muzik','music','copyright','mosh','age','raport','report'],
+  sq:'Rregullat kryesore:\n• Mosha minimale 13 vjeç (13–17 me prind).\n• Pa urrejtje, ngacmim, dhunë ose nudo.\n• Pa muzikë me të drejta autori — përndryshe DMCA strike dhe VOD-e të heshtura. Përdor Soundtrack by Twitch ose muzikë pa të drejta.\n• Shkelje = timeout, ban i përkohshëm ose ban i përhershëm.\nAktivizo 2FA dhe AutoMod për të mbrojtur kanalin.',
+  en:'Core rules:\n• Minimum age 13 (13–17 with a parent).\n• No hate, harassment, violence or nudity.\n• No copyrighted music — otherwise DMCA strikes and muted VODs. Use Soundtrack by Twitch or royalty-free music.\n• Violations = timeout, temporary or permanent ban.\nEnable 2FA and AutoMod to protect your channel.',
+  svg:'shield', video:'yt:twitch community guidelines explained', link:'https://safety.twitch.tv'},
+ {id:'app', kw:['app','aplikacion','telefon','mobile','iphone','android','shikoj','watch','tv','xbox','playstation'],
+  sq:'Twitch shikohet kudo: në browser (twitch.tv), në aplikacionin iOS/Android, në Smart TV, Xbox, PlayStation, Fire TV dhe Apple TV. Me app-in mobil mund edhe të bësh stream direkt nga telefoni (IRL streaming).',
+  en:'You can watch Twitch anywhere: in the browser (twitch.tv), the iOS/Android app, Smart TVs, Xbox, PlayStation, Fire TV and Apple TV. With the mobile app you can also stream straight from your phone (IRL streaming).',
+  svg:'devices', video:'yt:how to stream on twitch from phone', link:'https://www.twitch.tv/downloads'},
+ {id:'categories', kw:['kategori','category','categories','just chatting','lojë','loje','game','games','muzik','irl','popullor','popular','më të shikuar','most watched'],
+  sq:'Kategoritë më të mëdha në Twitch: Just Chatting (gjithmonë nr. 1), GTA V, League of Legends, Valorant, Fortnite, Counter-Strike, Minecraft, dhe kategoritë kreative: Music, Art, ASMR, Sports, IRL. Çdo stream vendoset në një kategori që shikuesit ta gjejnë.',
+  en:'The biggest categories on Twitch: Just Chatting (always #1), GTA V, League of Legends, Valorant, Fortnite, Counter-Strike, Minecraft, plus creative categories: Music, Art, ASMR, Sports, IRL. Every stream is placed in a category so viewers can find it.',
+  svg:'categories', video:'live', link:'https://www.twitch.tv/directory'},
+ {id:'history', kw:['histori','history','themel','founded','amazon','justin','kur','when','ble','bought','who owns','pronar'],
+  sq:'Histori e shkurtër: 2007 — Justin.tv (streaming i jetës së Justin Kan). 2011 — pjesa e lojërave ndahet si Twitch.tv. 2014 — Amazon e blen për ~$970 milion. Sot Twitch ka miliona streamer-a dhe mbi 2 milion shikues mesatarisht në çdo moment. Selia: San Francisco.',
+  en:'Short history: 2007 — Justin.tv (Justin Kan lifecasting). 2011 — the gaming section spins off as Twitch.tv. 2014 — Amazon buys it for ~$970 million. Today Twitch has millions of streamers and over 2 million average concurrent viewers. HQ: San Francisco.',
+  svg:'timeline', video:'yt:history of twitch documentary', link:'https://www.twitch.tv/p/about/'}
+];
+
+/* ========= ORIGINAL SVG ILLUSTRATIONS (pa logo zyrtare) ========= */
+const A='#9147ff',A2='#bf94ff',G='#00f593',M='#adadb8',BG='#141417',P='#1f1f23';
+const SVGS = {
+ overview:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/><rect x="60" y="40" width="300" height="180" rx="12" fill="${P}" stroke="${A}" stroke-width="3"/><rect x="80" y="60" width="260" height="140" rx="6" fill="#0e0e10"/><circle cx="210" cy="130" r="34" fill="${A}" opacity=".9"/><polygon points="200,112 230,130 200,148" fill="#fff"/><rect x="92" y="70" width="52" height="18" rx="9" fill="#e91916"/><text x="118" y="83" font-size="11" fill="#fff" text-anchor="middle" font-family="sans-serif" font-weight="700">LIVE</text><rect x="390" y="40" width="120" height="180" rx="12" fill="${P}"/>${[0,1,2,3,4].map(i=>`<rect x="402" y="${56+i*32}" width="${60+(i*17)%40}" height="10" rx="5" fill="${i%2?A2:M}" opacity=".8"/>`).join('')}<rect x="60" y="250" width="450" height="20" rx="10" fill="${P}"/><rect x="60" y="250" width="280" height="20" rx="10" fill="${A}"/></svg>`,
+ setup:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/><rect x="40" y="70" width="230" height="150" rx="10" fill="${P}" stroke="${A}" stroke-width="3"/><rect x="60" y="90" width="190" height="110" rx="4" fill="#0e0e10"/><rect x="70" y="100" width="100" height="60" rx="4" fill="${A}" opacity=".6"/><rect x="180" y="100" width="60" height="45" rx="4" fill="${G}" opacity=".5"/><rect x="310" y="60" width="60" height="110" rx="30" fill="${P}" stroke="${A2}" stroke-width="3"/><rect x="330" y="80" width="20" height="60" rx="10" fill="${A2}"/><rect x="335" y="170" width="10" height="40" fill="${M}"/><rect x="410" y="80" width="110" height="80" rx="10" fill="${P}" stroke="${A}" stroke-width="3"/><circle cx="465" cy="120" r="22" fill="#0e0e10" stroke="${A2}" stroke-width="3"/><circle cx="465" cy="120" r="8" fill="${A2}"/><text x="280" y="275" font-size="18" fill="${M}" text-anchor="middle" font-family="sans-serif">PC + Mic + Cam → OBS → Twitch</text></svg>`,
+ ladder:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/><rect x="80" y="230" width="120" height="50" rx="8" fill="${P}" stroke="${M}" stroke-width="2"/><rect x="220" y="170" width="120" height="110" rx="8" fill="${P}" stroke="${A2}" stroke-width="3"/><rect x="360" y="90" width="120" height="190" rx="8" fill="${P}" stroke="${A}" stroke-width="3"/><text x="140" y="260" font-size="14" fill="${M}" text-anchor="middle" font-family="sans-serif" font-weight="700">Streamer</text><text x="280" y="200" font-size="14" fill="${A2}" text-anchor="middle" font-family="sans-serif" font-weight="700">Affiliate</text><text x="280" y="222" font-size="11" fill="${M}" text-anchor="middle" font-family="sans-serif">50 followers · 3 avg</text><text x="420" y="120" font-size="14" fill="${A}" text-anchor="middle" font-family="sans-serif" font-weight="700">Partner</text><text x="420" y="142" font-size="11" fill="${M}" text-anchor="middle" font-family="sans-serif">75 avg · 25h/30d</text><polygon points="420,40 428,62 450,62 432,75 439,97 420,84 401,97 408,75 390,62 412,62" fill="${G}"/></svg>`,
+ bits:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/>${[[120,160,46,A],[230,120,34,A2],[320,190,28,G],[400,110,40,A],[470,200,24,A2]].map(([x,y,r,c])=>`<polygon points="${x},${y-r} ${x+r*.87},${y-r/2} ${x+r*.87},${y+r/2} ${x},${y+r} ${x-r*.87},${y+r/2} ${x-r*.87},${y-r/2}" fill="${c}" opacity=".9"/><polygon points="${x},${y-r} ${x+r*.87},${y-r/2} ${x},${y} " fill="#fff" opacity=".25"/>`).join('')}<text x="280" y="280" font-size="20" fill="${M}" text-anchor="middle" font-family="sans-serif">cheer100 ≈ $1.00 për streamer-in</text></svg>`,
+ subs:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/>${[['Tier 1','$5.99',60,M],['Tier 2','$9.99',210,A2],['Tier 3','$24.99',360,A]].map(([t,p,x,c])=>`<rect x="${x}" y="70" width="140" height="180" rx="14" fill="${P}" stroke="${c}" stroke-width="3"/><text x="${x+70}" y="110" font-size="18" fill="${c}" text-anchor="middle" font-family="sans-serif" font-weight="700">${t}</text><text x="${x+70}" y="160" font-size="26" fill="#fff" text-anchor="middle" font-family="sans-serif" font-weight="800">${p}</text><text x="${x+70}" y="200" font-size="12" fill="${M}" text-anchor="middle" font-family="sans-serif">emotes · badge · no ads</text>`).join('')}</svg>`,
+ prime:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/><rect x="90" y="90" width="160" height="130" rx="14" fill="${P}" stroke="#00a8e1" stroke-width="3"/><text x="170" y="165" font-size="22" fill="#00a8e1" text-anchor="middle" font-family="sans-serif" font-weight="800">PRIME</text><line x1="250" y1="155" x2="310" y2="155" stroke="${A2}" stroke-width="4" stroke-dasharray="8 6"/><rect x="310" y="90" width="160" height="130" rx="14" fill="${P}" stroke="${A}" stroke-width="3"/><text x="390" y="150" font-size="16" fill="${A2}" text-anchor="middle" font-family="sans-serif" font-weight="700">1 FREE SUB</text><text x="390" y="175" font-size="13" fill="${M}" text-anchor="middle" font-family="sans-serif">çdo muaj / every month</text></svg>`,
+ chat:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/><rect x="120" y="30" width="320" height="255" rx="12" fill="${P}"/>${[['viewer42',A2,'LUL that clip'],['mod_ana',G,'slow mode on'],['subguy',A,'cheer100 GG!'],['newbie',M,'how do i sub?'],['viewer42',A2,'PogChamp']].map(([n,c,t],i)=>`<circle cx="145" cy="${60+i*45}" r="8" fill="${c}"/><text x="162" y="${65+i*45}" font-size="13" fill="${c}" font-family="monospace" font-weight="700">${n}:</text><text x="245" y="${65+i*45}" font-size="13" fill="#fff" font-family="monospace">${t}</text>`).join('')}</svg>`,
+ raid:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/><rect x="60" y="100" width="150" height="110" rx="12" fill="${P}" stroke="${A2}" stroke-width="3"/><rect x="350" y="100" width="150" height="110" rx="12" fill="${P}" stroke="${A}" stroke-width="3"/>${[0,1,2,3,4,5].map(i=>`<circle cx="${230+i*20}" cy="${140+(i%2)*30}" r="9" fill="${i<3?A2:A}"/>`).join('')}<polygon points="330,155 350,140 350,170" fill="${G}"/><text x="135" y="240" font-size="14" fill="${M}" text-anchor="middle" font-family="sans-serif">Stream A (ends)</text><text x="425" y="240" font-size="14" fill="${M}" text-anchor="middle" font-family="sans-serif">Stream B (raided!)</text></svg>`,
+ drops:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/><rect x="200" y="140" width="160" height="110" rx="10" fill="${P}" stroke="${A}" stroke-width="3"/><rect x="190" y="130" width="180" height="30" rx="8" fill="${A}"/><rect x="270" y="130" width="20" height="120" fill="${A2}"/>${[0,1,2].map(i=>`<polygon points="${150+i*130},60 ${160+i*130},80 ${140+i*130},80" fill="${G}" opacity=".9"/><line x1="${150+i*130}" y1="80" x2="${150+i*130}" y2="120" stroke="${G}" stroke-width="2" stroke-dasharray="4 4"/>`).join('')}<text x="280" y="290" font-size="16" fill="${M}" text-anchor="middle" font-family="sans-serif">Watch → earn in-game rewards</text></svg>`,
+ shield:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/><path d="M280 40 L380 75 V160 C380 215 335 255 280 275 C225 255 180 215 180 160 V75 Z" fill="${P}" stroke="${A}" stroke-width="4"/><polyline points="240,160 270,190 325,125" fill="none" stroke="${G}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+ devices:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/><rect x="40" y="70" width="220" height="140" rx="8" fill="${P}" stroke="${A}" stroke-width="3"/><rect x="130" y="210" width="40" height="20" fill="${M}"/><rect x="300" y="60" width="90" height="170" rx="14" fill="${P}" stroke="${A2}" stroke-width="3"/><rect x="420" y="90" width="110" height="120" rx="10" fill="${P}" stroke="${A}" stroke-width="3"/><circle cx="475" cy="150" r="20" fill="${A}"/><polygon points="468,138 490,150 468,162" fill="#fff"/><text x="150" y="150" font-size="14" fill="${M}" text-anchor="middle" font-family="sans-serif">TV / PC</text><text x="345" y="150" font-size="14" fill="${M}" text-anchor="middle" font-family="sans-serif">App</text></svg>`,
+ categories:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/>${['Just Chatting','GTA V','Valorant','Music','IRL','Minecraft'].map((t,i)=>`<rect x="${40+(i%3)*165}" y="${50+Math.floor(i/3)*115}" width="150" height="95" rx="10" fill="${P}" stroke="${i%2?A2:A}" stroke-width="2"/><text x="${115+(i%3)*165}" y="${105+Math.floor(i/3)*115}" font-size="14" fill="#fff" text-anchor="middle" font-family="sans-serif" font-weight="700">${t}</text>`).join('')}</svg>`,
+ timeline:`<svg viewBox="0 0 560 315"><rect width="560" height="315" fill="${BG}"/><line x1="60" y1="160" x2="500" y2="160" stroke="${M}" stroke-width="3"/>${[['2007','Justin.tv',90],['2011','Twitch.tv',230],['2014','Amazon',370],['Today','2M+ live',480]].map(([y,t,x],i)=>`<circle cx="${x}" cy="160" r="10" fill="${i%2?A2:A}"/><text x="${x}" y="130" font-size="14" fill="#fff" text-anchor="middle" font-family="sans-serif" font-weight="700">${y}</text><text x="${x}" y="195" font-size="12" fill="${M}" text-anchor="middle" font-family="sans-serif">${t}</text>`).join('')}</svg>`
+};
+
+/* ========= STATE ========= */
+let lang='sq', history=[];
+const log=document.getElementById('log'), q=document.getElementById('q'), btn=document.getElementById('btn');
+
+function setLang(l){
+  lang=l; document.documentElement.lang=l;
+  document.getElementById('sq').classList.toggle('on',l==='sq');
+  document.getElementById('en').classList.toggle('on',l==='en');
+  document.querySelectorAll('[data-i18n]').forEach(e=>e.textContent=T[l][e.dataset.i18n]);
+  q.placeholder=T[l].ph; renderTopics(); renderChips();
+}
+function add(text,cls){const d=document.createElement('div');d.className='msg '+cls;d.textContent=text;log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
+function addCard(topic){
+  const k=KB.find(t=>t.id===topic); if(!k) return;
+  const c=document.createElement('div'); c.className='card';
+  let fig='';
+  if(k.video==='live') fig=`<iframe src="${TWITCH_EMBED}" allowfullscreen></iframe>`;
+  else if(k.video==='twitchchat') fig=`<iframe src="${TWITCH_CHAT_EMBED}"></iframe>`;
+  else fig=SVGS[k.svg]||'';
+  let vid='';
+  if(k.video&&k.video.startsWith('yt:')) vid=`<a class="vidbtn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(k.video.slice(3))}">▶ ${T[lang].watch}</a>`;
+  const label=k.video==='live'?T[lang].live:'';
+  c.innerHTML=`<div class="fig">${fig}</div><div class="cap"><span>${label}</span><span>${vid} <a class="vidbtn" target="_blank" rel="noopener" href="${k.link}">↗ ${T[lang].open}</a></span></div>`;
+  log.appendChild(c); log.scrollTop=log.scrollHeight;
+}
+function renderTopics(){
+  document.getElementById('topics').innerHTML=KB.map(k=>`<div class="topic" onclick="ask('${k.id}')"><div class="ic">${SVGS[k.svg].replace('viewBox="0 0 560 315"','viewBox="0 0 560 315" preserveAspectRatio="xMidYMid slice"')}</div><div><b>${title(k)}</b><span>${(k[lang]).split('\n')[0].slice(0,38)}…</span></div></div>`).join('');
+}
+function title(k){const t={what:['Çka është Twitch?','What is Twitch?'],start:['Si të filloj stream?','How to start streaming'],affiliate:['Affiliate & Partner','Affiliate & Partner'],bits:['Bits','Bits'],subs:['Subs & Tiers','Subs & Tiers'],prime:['Prime Gaming','Prime Gaming'],chat:['Chat & Emotes','Chat & Emotes'],raid:['Raids','Raids'],drops:['Drops & Points','Drops & Points'],safety:['Rregullat & Siguria','Rules & Safety'],app:['Ku ta shikoj?','Where to watch'],categories:['Kategoritë','Categories'],history:['Historia','History']};return t[k.id][lang==='sq'?0:1]}
+function renderChips(){
+  const ids=['what','start','affiliate','subs','safety'];
+  document.getElementById('chips').innerHTML=ids.map(i=>`<button class="chip" onclick="ask('${i}')">${title(KB.find(k=>k.id===i))}</button>`).join('');
+}
+function ask(id){const k=KB.find(t=>t.id===id);q.value=title(k);send(new Event('submit'))}
+
+/* ========= OFF-TOPIC GUARD (lokal) ========= */
+const TWITCH_WORDS=['twitch','stream','streamer','streaming','affiliate','partner','bits','cheer','sub','subs','abonim','emote','emotes','raid','host','drops','prime','chat','mod','moderator','obs','streamlabs','vod','clip','follower','followers','ndjekës','ndjekes','channel','kanal','kanali','viewer','shikues','live','ban','timeout','dmca','just chatting','creator','dashboard','badge','pogchamp','kappa','gift','tier','channel points','pikë','pike','kategori','category'];
+function isTwitch(s){s=' '+s.toLowerCase()+' ';return TWITCH_WORDS.some(w=>new RegExp('(^|[^a-zëç])'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'[a-zëç]{0,3}([^a-zëç]|$)').test(s))}
+function localAnswer(s){
+  s=s.toLowerCase(); let best=null,score=0;
+  for(const k of KB){const sc=k.kw.filter(w=>s.includes(w)).length; if(sc>score){score=sc;best=k}}
+  if(!best && isTwitch(s)) best=KB[0];
+  return best?{text:best[lang],topic:best.id}:null;
+}
+
+/* ========= SEND ========= */
+async function send(e){
+  e.preventDefault(); const text=q.value.trim(); if(!text) return;
+  add(text,'user'); q.value=''; btn.disabled=true;
+  const t=add('','bot'); t.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';
+  if(!isTwitch(text)){ t.className='msg bot deny'; t.textContent=T[lang].deny; btn.disabled=false; return; }
+  history.push({role:'user',content:text});
+  let res=null;
+  try{
+    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:history.slice(-10),lang,topics:KB.map(k=>k.id)})});
+    if(r.ok) res=await r.json();
+  }catch(_){}
+  if(!res||!res.text) res=localAnswer(text)||{text:T[lang].deny,topic:null,deny:true};
+  t.textContent=res.text; if(res.deny) t.className='msg bot deny';
+  history.push({role:'assistant',content:res.text});
+  if(res.topic) addCard(res.topic);
+  btn.disabled=false; q.focus();
+}
+setLang('sq'); add(T.sq.hi,'bot');
+</script>
+</body>
+</html>
